@@ -13,3 +13,11 @@ config_version=5
 config/name="Modern Ui Kit"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/modern_ui_kit/plugin.cfg")
+
+[gui]
+
+common/snap_controls_to_pixels=false

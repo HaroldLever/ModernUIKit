@@ -1,0 +1,297 @@
+[gd_scene load_steps=5 format=3 uid="uid://bwj7dm3rib13a"]
+
+[ext_resource type="Theme" uid="uid://cpi1ue0r743cx" path="res://addons/modern_ui_kit/themes/light.tres" id="1_ootu7"]
+[ext_resource type="Script" path="res://addons/modern_ui_kit/scripts/modern_scroll_container.gd" id="2_crmmr"]
+[ext_resource type="Texture2D" uid="uid://ccqwac3xw8hi" path="res://addons/modern_ui_kit/icon.svg" id="3_i1q8w"]
+
+[sub_resource type="GDScript" id="GDScript_p6q7y"]
+resource_name = "ui_controller"
+script/source = "extends Control
+
+# 垂直滚动容器的按钮
+@export var v_button:Button
+# 水平滚动容器的 TextureRect
+@export var h_tex_rect:TextureRect
+# 滚动容器的 TextureRect
+@export var hv_tex_rect:TextureRect
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	if v_button:
+		var parent_node = v_button.get_parent()
+		for i in 50:
+			var new_node = v_button.duplicate()
+			var new_name = \"Button\" + str(i+2)
+			new_node.name = new_name
+			new_node.text = new_name
+			parent_node.add_child(new_node)
+	if h_tex_rect:
+		var parent_node = h_tex_rect.get_parent()
+		for i in 20:
+			var new_node = h_tex_rect.duplicate()
+			var new_col = Color(
+				randf_range(0.5, 1.5),
+				randf_range(0.5, 1.5),
+				randf_range(0.5, 1.5),
+				1.0
+			)
+			new_node.modulate = new_col
+			parent_node.add_child(new_node)
+	if hv_tex_rect:
+		var parent_node = hv_tex_rect.get_parent()
+		for i in 200:
+			var new_node = hv_tex_rect.duplicate()
+			var new_col = Color(
+				randf_range(0.5, 1.5),
+				randf_range(0.5, 1.5),
+				randf_range(0.5, 1.5),
+				1.0
+			)
+			new_node.modulate = new_col
+			parent_node.add_child(new_node)
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta):
+	pass
+"
+
+[node name="Node" type="Control" node_paths=PackedStringArray("v_button", "h_tex_rect", "hv_tex_rect")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_p6q7y")
+v_button = NodePath("Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer/Button1")
+h_tex_rect = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer/HBoxContainer/TextureRect")
+hv_tex_rect = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer/HBoxContainer/TextureRect")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="HSplitContainer" type="HSplitContainer" parent="Control/MarginContainer"]
+layout_mode = 2
+split_offset = 270
+
+[node name="Panel" type="Panel" parent="Control/MarginContainer/HSplitContainer"]
+layout_mode = 2
+theme = ExtResource("1_ootu7")
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer" node_paths=PackedStringArray("content_node")]
+clip_contents = true
+layout_mode = 2
+script = ExtResource("2_crmmr")
+content_node = NodePath("VBoxContainer")
+auto_lock_h = false
+auto_lock_v = false
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 2
+
+[node name="Button1" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button2" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button3" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button4" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button5" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button6" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button7" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button8" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button9" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button10" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button11" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button12" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="Button13" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_filter = 1
+theme = ExtResource("1_ootu7")
+text = "Button1"
+
+[node name="VSplitContainer" type="VSplitContainer" parent="Control/MarginContainer/HSplitContainer"]
+layout_mode = 2
+split_offset = 85
+
+[node name="Panel1" type="Panel" parent="Control/MarginContainer/HSplitContainer/VSplitContainer"]
+layout_mode = 2
+theme = ExtResource("1_ootu7")
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer" node_paths=PackedStringArray("content_node")]
+clip_contents = true
+layout_mode = 2
+script = ExtResource("2_crmmr")
+content_node = NodePath("HBoxContainer")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 6
+
+[node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer/HBoxContainer"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("3_i1q8w")
+expand_mode = 1
+
+[node name="Panel2" type="Panel" parent="Control/MarginContainer/HSplitContainer/VSplitContainer"]
+layout_mode = 2
+theme = ExtResource("1_ootu7")
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer" node_paths=PackedStringArray("content_node")]
+clip_contents = true
+layout_mode = 2
+script = ExtResource("2_crmmr")
+content_node = NodePath("HBoxContainer")
+
+[node name="HBoxContainer" type="GridContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 2
+size_flags_vertical = 2
+columns = 16
+
+[node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer/HBoxContainer"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("3_i1q8w")
+expand_mode = 1

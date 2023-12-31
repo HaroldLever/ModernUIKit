@@ -19,7 +19,7 @@ script/source = "extends Control
 func _ready():
 	if v_button:
 		var parent_node = v_button.get_parent()
-		for i in 50:
+		for i in 30:
 			var new_node = v_button.duplicate()
 			var new_name = \"Button\" + str(i+2)
 			new_node.name = new_name
@@ -114,6 +114,10 @@ clip_contents = true
 layout_mode = 2
 script = ExtResource("2_crmmr")
 content_node = NodePath("VBoxContainer")
+friction_drag = 10000
+bounce_drag = 700
+enable_mouse_dragging = null
+enable_touch_dragging = null
 auto_lock_h = false
 auto_lock_v = false
 
@@ -225,6 +229,15 @@ mouse_filter = 1
 theme = ExtResource("1_ootu7")
 text = "Button1"
 
+[node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 10
+size_flags_vertical = 6
+texture = ExtResource("3_i1q8w")
+expand_mode = 5
+stretch_mode = 5
+
 [node name="VSplitContainer" type="VSplitContainer" parent="Control/MarginContainer/HSplitContainer"]
 layout_mode = 2
 split_offset = 85
@@ -250,17 +263,22 @@ clip_contents = true
 layout_mode = 2
 script = ExtResource("2_crmmr")
 content_node = NodePath("HBoxContainer")
+friction_drag = 10000
+bounce_drag = 700
+enable_mouse_dragging = null
+enable_touch_dragging = null
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 6
+size_flags_vertical = 3
 
 [node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer/HBoxContainer"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 texture = ExtResource("3_i1q8w")
-expand_mode = 1
+expand_mode = 5
+stretch_mode = 5
 
 [node name="Panel2" type="Panel" parent="Control/MarginContainer/HSplitContainer/VSplitContainer"]
 layout_mode = 2
@@ -283,6 +301,10 @@ clip_contents = true
 layout_mode = 2
 script = ExtResource("2_crmmr")
 content_node = NodePath("HBoxContainer")
+friction_drag = 10000
+bounce_drag = 700
+enable_mouse_dragging = null
+enable_touch_dragging = null
 
 [node name="HBoxContainer" type="GridContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer"]
 layout_mode = 2

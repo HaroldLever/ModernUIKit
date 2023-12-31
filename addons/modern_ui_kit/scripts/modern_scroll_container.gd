@@ -9,20 +9,48 @@ extends Container
 ## Content node to scroll, the first child by default. 
 @export var content_node :Control
 
+## 鼠标滚轮参数分组
+@export_group("Mouse Wheel Params")
+
+## 滚动速度。数值越大，滚动越快。
+## Scrolling speed. The higher the value, the faster it scrolls. 
 @export var speed := 1000:
 	set(val): speed = max(val, 0)
 
+## 鼠标滚轮滑动时的摩擦值，非物理意义。数值越大，减速越明显。
+## Friction when scrolling with mouse wheel, not physical. 
+## The higher the value, the more obvious the deceleration. 
 @export var friction_scroll := 100000:
 	set(val): friction_scroll = max(val, 0)
 
-@export var friction_drag := 100000:
-	set(val): friction_drag = max(val, 0)
-
+## 鼠标滚轮滑动时的出界回弹力度，数值越大，回弹力度越大。
+## Bounce strength when out of boundary with mouse wheel. 
+## The higher the value, the greater the strength. 
 @export var bounce_scroll := 400:
 	set(val): bounce_scroll = max(val, 0)
 
+## 拖拽滚动参数分组
+@export_group("Dragging Params")
+
+## 拖拽滚动时的摩擦值，非物理意义。数值越大，减速越明显。
+## Friction when scrolling by dragging, not physical. 
+## The higher the value, the more obvious the deceleration. 
+@export var friction_drag := 100000:
+	set(val): friction_drag = max(val, 0)
+
+## 拖拽滑动时的出界回弹力度，数值越大，回弹力度越大。
+## Bounce strength when out of boundary with dragging. 
+## The higher the value, the greater the strength. 
 @export var bounce_drag := 400:
 	set(val): bounce_drag = max(val, 0)
+
+## 启用鼠标左键拖动。
+## Enable dragging with mouse left button. 
+@export var enable_mouse_dragging := true
+
+## 启用触摸拖动。
+## Enable dragging with screen touch. 
+@export var enable_touch_dragging := true
 
 @export var auto_lock_h := true
 
@@ -33,10 +61,19 @@ extends Container
 var _velocity = Vector2.ZERO
 # 最终摩擦力。
 # Friction to use. 
-var friction = 0
+var _friction = 0
 # 最终回弹力。
-# Bounce strength to use
-var bounce_strength = 0
+# Bounce strength to use. 
+var _bounce_strength = 0
+# 是否正在拖拽 content_node
+# Dragging content_node or not
+var _is_dragging = false
+# [0,1] 鼠标或触点累积出界拖拽相对位移，[2,3] 拖拽开始时 content_noe 的位置，
+# [4,5,6,7] 左，右，上，下边界距离。
+# [0,1] Mouse or touch's relative dragging movement accumulation when out of boundary. 
+# [2,3] Content node 's position when dragging starts. 
+# [4,5,6,7] Left_distance, right_distance, top_distance, bottom_distance. 
+var _drag_temp_data := []
 
 
 func _enter_tree() -> void:
@@ -56,52 +93,166 @@ func _exit_tree() -> void:
 
 
 func _ready() -> void:
-	friction = friction_scroll
-	bounce_strength = bounce_scroll
+	_friction = friction_scroll
+	_bounce_strength = bounce_scroll
 
 
 func _gui_input(event:InputEvent) -> void:
+	if !content_node: return
 	if event is InputEventMouseButton:
-		match event.button_index:
-			MOUSE_BUTTON_WHEEL_UP:
-				if event.pressed:
-					if event.shift_pressed:
-						if _should_scroll_horizontal():
-							_velocity.x += speed * event.factor
-					else:
-						if _should_scroll_vertical():
-							_velocity.y += speed * event.factor
-			MOUSE_BUTTON_WHEEL_DOWN:
-				if event.pressed:
-					if event.shift_pressed:
-						if _should_scroll_horizontal():
-							_velocity.x -= speed * event.factor
-					else:
-						if _should_scroll_vertical():
-							_velocity.y -= speed * event.factor
-			MOUSE_BUTTON_WHEEL_LEFT:
-				if event.pressed:
-					if !event.shift_pressed:
-						if _should_scroll_horizontal():
-							_velocity.x += speed * event.factor
-					else:
-						if _should_scroll_vertical():
-							_velocity.y += speed * event.factor
-			MOUSE_BUTTON_WHEEL_RIGHT:
-				if event.pressed:
-					if !event.shift_pressed:
-						if _should_scroll_horizontal():
-							_velocity.x -= speed * event.factor
-					else:
-						if _should_scroll_vertical():
-							_velocity.y -= speed * event.factor
-	get_tree().get_root().set_input_as_handled()
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP \
+				or event.button_index == MOUSE_BUTTON_WHEEL_DOWN \
+				or event.button_index == MOUSE_BUTTON_WHEEL_LEFT \
+				or event.button_index == MOUSE_BUTTON_WHEEL_RIGHT:
+			_handle_wheel_input(event)
+	if (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT) \
+			or event is InputEventScreenTouch \
+			or event is InputEventMouseMotion \
+			or event is InputEventScreenDrag:
+		_handle_drag_input(event)
 
 
 func _process(delta:float) -> void:
 	if !content_node: return
 	if Engine.is_editor_hint(): return
 	_scroll(delta)
+
+
+# 处理鼠标滚轮事件
+func _handle_wheel_input(event:InputEventMouseButton) -> void:
+	if !event.pressed: return
+	# 更改参数
+	# Change parameters
+	_friction = friction_scroll
+	_bounce_strength = bounce_scroll
+	# 处理不同按钮
+	# Handle different buttons
+	match event.button_index:
+		MOUSE_BUTTON_WHEEL_UP:
+			if event.shift_pressed:
+				if _should_scroll_horizontal():
+					_velocity.x += speed * event.factor
+			else:
+				if _should_scroll_vertical():
+					_velocity.y += speed * event.factor
+		MOUSE_BUTTON_WHEEL_DOWN:
+			if event.shift_pressed:
+				if _should_scroll_horizontal():
+					_velocity.x -= speed * event.factor
+			else:
+				if _should_scroll_vertical():
+					_velocity.y -= speed * event.factor
+		MOUSE_BUTTON_WHEEL_LEFT:
+			if !event.shift_pressed:
+				if _should_scroll_horizontal():
+					_velocity.x += speed * event.factor
+			else:
+				if _should_scroll_vertical():
+					_velocity.y += speed * event.factor
+		MOUSE_BUTTON_WHEEL_RIGHT:
+			if !event.shift_pressed:
+				if _should_scroll_horizontal():
+					_velocity.x -= speed * event.factor
+			else:
+				if _should_scroll_vertical():
+					_velocity.y -= speed * event.factor
+
+
+# 处理拖动事件
+func _handle_drag_input(event:InputEvent) -> void:
+	# 能否拖拽
+	# Can drag and move
+	var can_drag_with_mouse = event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and enable_mouse_dragging
+	var can_move_with_mouse = event is InputEventMouseMotion \
+			and enable_mouse_dragging
+	var can_drag_with_touch = event is InputEventScreenTouch \
+			and enable_touch_dragging
+	var can_move_with_touch = event is InputEventScreenDrag \
+			and enable_touch_dragging
+	
+	if can_drag_with_mouse or can_drag_with_touch:
+		if event.pressed:
+			_is_dragging = true
+			_init_drag_temp_data()
+		else:
+			_is_dragging = false
+			_friction = friction_drag
+			_bounce_strength = bounce_drag
+	if can_move_with_mouse or can_move_with_touch:
+		if _is_dragging:
+			if _should_scroll_horizontal():
+				_drag_temp_data[0] += event.relative.x
+			if _should_scroll_vertical():
+				_drag_temp_data[1] += event.relative.y
+			_handle_content_dragging()
+
+
+func _handle_content_dragging() -> void:
+	var pos = _get_content_node_position()
+	
+	var calculate_dest = func(delta:float, bounce_strength:float) -> float:
+		if delta >= 0.0:
+			return delta / (1 + delta * bounce_strength * 0.00001)
+		else:
+			return delta
+	
+	var calculate_position = func(
+		temp_dist1: float,		# Temp distance
+		temp_dist2: float,
+		temp_relative: float	# Event's relative movement accumulation
+	) -> float:
+		if temp_relative + temp_dist1 > 0.0:
+			var delta = min(temp_relative, temp_relative + temp_dist1)
+			var dest = calculate_dest.call(delta, bounce_drag)
+			return dest - min(0.0, temp_dist1)
+		elif temp_relative + temp_dist2 < 0.0:
+			var delta = max(temp_relative, temp_relative + temp_dist2)
+			var dest = -calculate_dest.call(-delta, bounce_drag)
+			return dest - max(0.0, temp_dist2)
+		else: return temp_relative
+	
+	if _should_scroll_vertical():
+		var y_pos = calculate_position.call(
+			_drag_temp_data[6],	# Temp top_distance
+			_drag_temp_data[7],	# Temp bottom_distance
+			_drag_temp_data[1]	# Temp y relative accumulation
+		) + _drag_temp_data[3]
+		_velocity.y = (y_pos - pos.y) / get_process_delta_time()
+		pos.y = y_pos
+	if _should_scroll_horizontal():
+		var x_pos = calculate_position.call(
+			_drag_temp_data[4],	# Temp left_distance
+			_drag_temp_data[5],	# Temp right_distance
+			_drag_temp_data[0]	# Temp x relative accumulation
+		) + _drag_temp_data[2]
+		_velocity.x = (x_pos - pos.x) / get_process_delta_time()
+		pos.x = x_pos
+	_set_content_node_position(pos)
+
+
+# 初始化临时拖拽数据
+func _init_drag_temp_data() -> void:
+	# content_node 的位置
+	# Content node 's position
+	var content_node_position = _get_content_node_position()
+	# 计算该容器与 content_node 的尺寸差距
+	# Calculate the size difference between this container and content_node
+	var content_node_size_diff = _get_content_node_size_diff()
+	# 计算 content_node 到左、右、上、下边界的距离
+	# Calculate distance to left, right, top and bottom
+	var content_node_boundary_dist = _get_content_node_boundary_dist(content_node_size_diff)
+	_drag_temp_data = [
+		0.0, 
+		0.0, 
+		content_node_position.x,
+		content_node_position.y,
+		content_node_boundary_dist.x, 
+		content_node_boundary_dist.y, 
+		content_node_boundary_dist.z, 
+		content_node_boundary_dist.w
+	]
 
 
 # 是否能够水平滚动
@@ -128,45 +279,37 @@ func _should_scroll_vertical() -> bool:
 
 func _scroll(delta:float) -> void:
 	if !content_node: return
-	_bounce(delta)
-	# 计算 content_node 位置和 _velocity
-	# Calculate content_node.position and _velocity
-	var present_time_x = _calculate_time_by_velocity(_velocity.x)
-	var present_time_y = _calculate_time_by_velocity(_velocity.y)
-	_velocity = Vector2(
-		_calculate_velocity_by_time(present_time_x - delta),
-		_calculate_velocity_by_time(present_time_y - delta)
-	) * sign(_velocity)
-	content_node.position += \
-		Vector2(
-			_calculate_offset_by_time(present_time_x) - _calculate_offset_by_time(present_time_x - delta),
-			_calculate_offset_by_time(present_time_y) - _calculate_offset_by_time(present_time_y - delta)
+	
+	if _is_dragging:
+		pass
+	else:
+		# 出界回弹
+		# Bounce when out of boundary
+		_bounce(delta)
+		# 计算 content_node 位置和 _velocity
+		# Calculate content_node.position and _velocity
+		var present_time_x = _calculate_time_by_velocity(_velocity.x)
+		var present_time_y = _calculate_time_by_velocity(_velocity.y)
+		_velocity = Vector2(
+			_calculate_velocity_by_time(present_time_x - delta),
+			_calculate_velocity_by_time(present_time_y - delta)
 		) * sign(_velocity)
+		content_node.position += \
+			Vector2(
+				_calculate_offset_by_time(present_time_x) - _calculate_offset_by_time(present_time_x - delta),
+				_calculate_offset_by_time(present_time_y) - _calculate_offset_by_time(present_time_y - delta)
+			) * sign(_velocity)
+
 
 # 出界回弹
 # Bounce when out of boundary
 func _bounce(delta:float) -> void:
-	# 伪造 content_node 的尺寸以避免其尺寸小于容器时的错误
-	# Falsify the size of the content_node to avoid errors 
-	# when the size is smaller than this container
-	var content_node_size = Vector2(
-		max(content_node.get_global_rect().size.x, get_global_rect().size.x),
-		max(content_node.get_global_rect().size.y, get_global_rect().size.y)
-	)
 	# 计算该容器与 content_node 的尺寸差距
 	# Calculate the size difference between this container and content_node
-	var content_node_size_diff = Vector2(
-		content_node_size.x - get_global_rect().size.x,
-		content_node_size.y - get_global_rect().size.y
-	)
+	var content_node_size_diff = _get_content_node_size_diff()
 	# 计算 content_node 到左、右、上、下边界的距离
 	# Calculate distance to left, right, top and bottom
-	var content_node_boundary_dist = Vector4(
-		_get_content_node_position().x,
-		_get_content_node_position().x + content_node_size_diff.x,
-		_get_content_node_position().y,
-		_get_content_node_position().y + content_node_size_diff.y
-	)
+	var content_node_boundary_dist = _get_content_node_boundary_dist(content_node_size_diff)
 	# 计算到左、右、上、下边界所需的速度
 	# Calculate velocity to left, right, top and bottom
 	var target_vel = Vector4(
@@ -182,24 +325,53 @@ func _bounce(delta:float) -> void:
 	# apply a velocity that makes it scroll back exactly.
 	if _get_content_node_position().x > 0.0:
 		if _velocity.x > target_vel.x:
-			_velocity.x -= bounce_strength * abs(content_node_boundary_dist.x) * delta
+			_velocity.x -= _bounce_strength * abs(content_node_boundary_dist.x) * delta
 			if _velocity.x <= target_vel.x:
 				_velocity.x = target_vel.x
 	if _get_content_node_position().x < -content_node_size_diff.x:
 		if _velocity.x < target_vel.y:
-			_velocity.x += bounce_strength * abs(content_node_boundary_dist.y) * delta
+			_velocity.x += _bounce_strength * abs(content_node_boundary_dist.y) * delta
 			if _velocity.x >= target_vel.y:
 				_velocity.x = target_vel.y
 	if _get_content_node_position().y > 0.0:
 		if _velocity.y > target_vel.z:
-			_velocity.y -= bounce_strength * abs(content_node_boundary_dist.z) * delta
+			_velocity.y -= _bounce_strength * abs(content_node_boundary_dist.z) * delta
 			if _velocity.y <= target_vel.z:
 				_velocity.y = target_vel.z
 	if _get_content_node_position().y < -content_node_size_diff.y:
 		if _velocity.y < target_vel.w:
-			_velocity.y += bounce_strength * abs(content_node_boundary_dist.w) * delta
+			_velocity.y += _bounce_strength * abs(content_node_boundary_dist.w) * delta
 			if _velocity.y >= target_vel.w:
 				_velocity.y = target_vel.w
+
+
+func _get_content_node_size_diff() -> Vector2:
+	# 伪造 content_node 的尺寸以避免其尺寸小于容器时的错误
+	# Falsify the size of the content_node to avoid errors 
+	# when the size is smaller than this container
+	var content_node_size = Vector2(
+		max(content_node.get_global_rect().size.x, get_global_rect().size.x),
+		max(content_node.get_global_rect().size.y, get_global_rect().size.y)
+	)
+	# 计算该容器与 content_node 的尺寸差距
+	# Calculate the size difference between this container and content_node
+	var content_node_size_diff = Vector2(
+		content_node_size.x - get_global_rect().size.x,
+		content_node_size.y - get_global_rect().size.y
+	)
+	return content_node_size_diff
+
+
+func _get_content_node_boundary_dist(content_node_size_diff:Vector2) -> Vector4:
+	# 计算 content_node 到左、右、上、下边界的距离
+	# Calculate distance to left, right, top and bottom
+	var content_node_boundary_dist = Vector4(
+		_get_content_node_position().x,
+		_get_content_node_position().x + content_node_size_diff.x,
+		_get_content_node_position().y,
+		_get_content_node_position().y + content_node_size_diff.y
+	)
+	return content_node_boundary_dist
 
 
 # 根据 content_node 的 size_flag 伪造一个 position getter
@@ -209,6 +381,7 @@ func _get_content_node_position() -> Vector2:
 	fake_position.x = min(fake_position.x, content_node.position.x)
 	fake_position.y = min(fake_position.y, content_node.position.y)
 	return fake_position
+
 
 func _get_child_fake_position(node:Control) -> Vector2:
 	var fake_position = node.position
@@ -226,8 +399,6 @@ func _get_child_fake_position(node:Control) -> Vector2:
 	if node.size_flags_vertical == EXPAND_END:
 		fake_position.y -= \
 			get_global_rect().size.y - node.get_global_rect().size.y
-	#fake_position.x = min(fake_position.x, node.position.x)
-	#fake_position.y = min(fake_position.y, node.position.y) 
 	return fake_position
 
 
@@ -239,7 +410,6 @@ func _set_content_node_position(new_position:Vector2) -> void:
 
 # 设置子节点位置
 func _fit_child_position(node:Control, new_position:Vector2, keep_offset:bool=false) -> void:
-	prints(node)
 	if content_node and node == content_node and ! Engine.is_editor_hint() and !keep_offset:
 		new_position = _get_child_fake_position(node)
 	var fake_position = new_position
@@ -260,24 +430,29 @@ func _fit_child_position(node:Control, new_position:Vector2, keep_offset:bool=fa
 	node.position = fake_position
 
 
+# 用时间求速度
 func _calculate_velocity_by_time(time:float) -> float:
 	if time <= 0.0: return 0.0
-	return time*time*time * friction
+	return time*time*time * _friction
 
 
+# 用速度求时间
 func _calculate_time_by_velocity(velocity:float) -> float:
-	return pow(abs(velocity) / friction, 1.0/3.0)
+	return pow(abs(velocity) / _friction, 1.0/3.0)
 
 
+# 用位移求时间
 func _calculate_offset_by_time(time:float) -> float:
 	time = max(time, 0.0)
-	return 1.0/4.0 * friction * time*time*time*time
+	return 1.0/4.0 * _friction * time*time*time*time
 
 
+# 用时间求位移
 func _calculate_time_by_offset(offset:float) -> float:
-	return pow(offset * 4.0 / friction, 1.0/4.0)
+	return pow(offset * 4.0 / _friction, 1.0/4.0)
 
 
+# 计算到达目的地所需的速度
 func _calculate_velocity_to_dest(from:float, to:float) -> float:
 	var dist = to - from
 	var time = _calculate_time_by_offset(abs(dist))
@@ -291,13 +466,12 @@ func _on_child_changed(node:Node=null, exit_tree:bool=false) -> void:
 	# Assign the first child node to content_node.
 	if get_children().size() > 0 and get_child(0) is Control:
 		content_node = get_child(0)
+	else:
+		content_node = null
 	# 连接信号
 	# Connect signals
 	if node and node is Control:
 		if exit_tree:
-			# @Note 设置位置时无故触发，暂时禁用，需要查明原因或绕过
-			# @Note This signal will be emitted when setting position for no reason, 
-			# banned temporarily, need investigation or another solution
 			node.resized.disconnect(_on_child_resized)
 			node.size_flags_changed.disconnect(_on_child_resized)
 			node.minimum_size_changed.disconnect(_on_child_resized)
@@ -310,7 +484,6 @@ func _on_child_changed(node:Node=null, exit_tree:bool=false) -> void:
 
 # 当当前节点大小变化时
 func _on_self_resized() -> void:
-	print(get_children().size())
 	for child in get_children():
 		_fit_child_size(child)
 		_fit_child_position(child, Vector2.ZERO)

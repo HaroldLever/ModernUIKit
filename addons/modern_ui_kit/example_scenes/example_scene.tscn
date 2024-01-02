@@ -8,27 +8,27 @@
 resource_name = "ui_controller"
 script/source = "extends Control
 
-# 垂直滚动容器的按钮
-@export var v_button:Button
+# 垂直滚动容器的复制对象
+@export var v_control:Control
 # 水平滚动容器的 TextureRect
-@export var h_tex_rect:TextureRect
+@export var h_control:Control
 # 滚动容器的 TextureRect
-@export var hv_tex_rect:TextureRect
+@export var hv_control:Control
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	if v_button:
-		var parent_node = v_button.get_parent()
+	if v_control:
+		var parent_node = v_control.get_parent()
 		for i in 30:
-			var new_node = v_button.duplicate()
+			var new_node = v_control.duplicate()
 			var new_name = \"Button\" + str(i+2)
 			new_node.name = new_name
 			new_node.text = new_name
 			parent_node.add_child(new_node)
-	if h_tex_rect:
-		var parent_node = h_tex_rect.get_parent()
+	if h_control:
+		var parent_node = h_control.get_parent()
 		for i in 20:
-			var new_node = h_tex_rect.duplicate()
+			var new_node = h_control.duplicate()
 			var new_col = Color(
 				randf_range(0.5, 1.5),
 				randf_range(0.5, 1.5),
@@ -37,10 +37,10 @@ func _ready():
 			)
 			new_node.modulate = new_col
 			parent_node.add_child(new_node)
-	if hv_tex_rect:
-		var parent_node = hv_tex_rect.get_parent()
+	if hv_control:
+		var parent_node = hv_control.get_parent()
 		for i in 200:
-			var new_node = hv_tex_rect.duplicate()
+			var new_node = hv_control.duplicate()
 			var new_col = Color(
 				randf_range(0.5, 1.5),
 				randf_range(0.5, 1.5),
@@ -56,7 +56,7 @@ func _process(delta):
 	pass
 "
 
-[node name="Node" type="Control" node_paths=PackedStringArray("v_button", "h_tex_rect", "hv_tex_rect")]
+[node name="Node" type="Control" node_paths=PackedStringArray("v_control", "h_control", "hv_control")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -64,9 +64,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = SubResource("GDScript_p6q7y")
-v_button = NodePath("Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer/Button1")
-h_tex_rect = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer/HBoxContainer/TextureRect")
-hv_tex_rect = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer/HBoxContainer/TextureRect")
+v_control = NodePath("Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer/Button1")
+h_control = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer/HBoxContainer/Button")
+hv_control = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer/HBoxContainer/Button")
 
 [node name="Control" type="Control" parent="."]
 layout_mode = 1
@@ -76,6 +76,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_vertical = 3
+theme = ExtResource("1_ootu7")
 
 [node name="MarginContainer" type="MarginContainer" parent="Control"]
 layout_mode = 1
@@ -94,8 +95,8 @@ layout_mode = 2
 split_offset = 270
 
 [node name="Panel" type="Panel" parent="Control/MarginContainer/HSplitContainer"]
+clip_contents = true
 layout_mode = 2
-theme = ExtResource("1_ootu7")
 
 [node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/Panel"]
 layout_mode = 1
@@ -110,16 +111,11 @@ theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
 [node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer" node_paths=PackedStringArray("content_node")]
-clip_contents = true
 layout_mode = 2
 script = ExtResource("2_crmmr")
 content_node = NodePath("VBoxContainer")
 friction_drag = 10000
 bounce_drag = 700
-enable_mouse_dragging = null
-enable_touch_dragging = null
-auto_lock_h = false
-auto_lock_v = false
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer"]
 layout_mode = 2
@@ -130,7 +126,6 @@ size_flags_vertical = 2
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button2" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -138,7 +133,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button3" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -146,7 +140,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button4" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -154,7 +147,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button5" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -162,7 +154,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button6" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -170,7 +161,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button7" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -178,7 +168,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button8" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -186,7 +175,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button9" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -194,7 +182,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button10" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -202,7 +189,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button11" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -210,7 +196,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button12" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -218,7 +203,6 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="Button13" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer/VBoxContainer"]
@@ -226,25 +210,33 @@ visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
-theme = ExtResource("1_ootu7")
 text = "Button1"
 
 [node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-size_flags_horizontal = 10
+size_flags_horizontal = 0
 size_flags_vertical = 6
 texture = ExtResource("3_i1q8w")
 expand_mode = 5
 stretch_mode = 5
+
+[node name="VScrollBar" type="VScrollBar" parent="Control/MarginContainer/HSplitContainer/Panel/MarginContainer/ModernScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 10
+size_flags_vertical = 3
+page = 20.0
+allow_greater = true
+allow_lesser = true
 
 [node name="VSplitContainer" type="VSplitContainer" parent="Control/MarginContainer/HSplitContainer"]
 layout_mode = 2
 split_offset = 85
 
 [node name="Panel1" type="Panel" parent="Control/MarginContainer/HSplitContainer/VSplitContainer"]
+clip_children = 2
+clip_contents = true
 layout_mode = 2
-theme = ExtResource("1_ootu7")
 
 [node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1"]
 layout_mode = 1
@@ -259,30 +251,31 @@ theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
 [node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer" node_paths=PackedStringArray("content_node")]
-clip_contents = true
 layout_mode = 2
 script = ExtResource("2_crmmr")
 content_node = NodePath("HBoxContainer")
 friction_drag = 10000
 bounce_drag = 700
-enable_mouse_dragging = null
-enable_touch_dragging = null
+h_scroll_modifier = 0
+v_scroll_modifier = 2
+follow_focus = null
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/MarginContainer/ModernScrollContainer/HBoxContainer"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-texture = ExtResource("3_i1q8w")
-expand_mode = 5
-stretch_mode = 5
+size_flags_vertical = 4
+mouse_filter = 1
+theme_type_variation = &"OneTextureButton"
 
 [node name="Panel2" type="Panel" parent="Control/MarginContainer/HSplitContainer/VSplitContainer"]
+clip_children = 2
+clip_contents = true
 layout_mode = 2
-theme = ExtResource("1_ootu7")
 
 [node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2"]
 layout_mode = 1
@@ -297,14 +290,12 @@ theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
 [node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer" node_paths=PackedStringArray("content_node")]
-clip_contents = true
 layout_mode = 2
 script = ExtResource("2_crmmr")
 content_node = NodePath("HBoxContainer")
 friction_drag = 10000
 bounce_drag = 700
-enable_mouse_dragging = null
-enable_touch_dragging = null
+follow_focus = null
 
 [node name="HBoxContainer" type="GridContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer"]
 layout_mode = 2
@@ -312,8 +303,9 @@ size_flags_horizontal = 2
 size_flags_vertical = 2
 columns = 16
 
-[node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/MarginContainer/ModernScrollContainer/HBoxContainer"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-texture = ExtResource("3_i1q8w")
-expand_mode = 1
+size_flags_vertical = 4
+mouse_filter = 1
+theme_type_variation = &"OneTextureButton"

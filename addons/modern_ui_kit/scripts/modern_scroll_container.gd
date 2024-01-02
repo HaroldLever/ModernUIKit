@@ -1,29 +1,40 @@
 @tool
 class_name ModernScrollContainer
 extends Container
-## 拥有平滑滚动、出界回弹、触摸滑动的现代滚动容器。
+## 拥有平滑滚动、出界回弹、触摸滑动的现代滚动容器。[br]
 ## Modern scroll container with features like smooth scrolling, 
 ## bouncing and touch dragging. 
 
-## 要滚动的内容节点，默认是第一个子节点。
+
+## 键盘修饰键。0代表无任何修饰键被按下。[br]
+## Keyboard modifier. 0 means no modifier is pressed. 
+enum Modifier{
+	NONE = 0,
+	CTRL = 1,
+	SHIFT = 2,
+	ALT = 4,
+}
+
+
+## 要滚动的内容节点，默认是第一个子节点。[br]
 ## Content node to scroll, the first child by default. 
 @export var content_node :Control
 
 ## 鼠标滚轮参数分组
 @export_group("Mouse Wheel Params")
 
-## 滚动速度。数值越大，滚动越快。
+## 滚动速度。数值越大，滚动越快。[br]
 ## Scrolling speed. The higher the value, the faster it scrolls. 
 @export var speed := 1000:
 	set(val): speed = max(val, 0)
 
-## 鼠标滚轮滑动时的摩擦值，非物理意义。数值越大，减速越明显。
+## 鼠标滚轮滑动时的摩擦值，非物理意义。数值越大，减速越明显。[br]
 ## Friction when scrolling with mouse wheel, not physical. 
 ## The higher the value, the more obvious the deceleration. 
 @export var friction_scroll := 100000:
 	set(val): friction_scroll = max(val, 0)
 
-## 鼠标滚轮滑动时的出界回弹力度，数值越大，回弹力度越大。
+## 鼠标滚轮滑动时的出界回弹力度，数值越大，回弹力度越大。[br]
 ## Bounce strength when out of boundary with mouse wheel. 
 ## The higher the value, the greater the strength. 
 @export var bounce_scroll := 400:
@@ -32,29 +43,64 @@ extends Container
 ## 拖拽滚动参数分组
 @export_group("Dragging Params")
 
-## 拖拽滚动时的摩擦值，非物理意义。数值越大，减速越明显。
+## 拖拽滚动时的摩擦值，非物理意义。数值越大，减速越明显。[br]
 ## Friction when scrolling by dragging, not physical. 
 ## The higher the value, the more obvious the deceleration. 
 @export var friction_drag := 100000:
 	set(val): friction_drag = max(val, 0)
 
-## 拖拽滑动时的出界回弹力度，数值越大，回弹力度越大。
+## 拖拽滑动时的出界回弹力度，数值越大，回弹力度越大。[br]
 ## Bounce strength when out of boundary with dragging. 
 ## The higher the value, the greater the strength. 
 @export var bounce_drag := 400:
 	set(val): bounce_drag = max(val, 0)
 
-## 启用鼠标左键拖动。
+## 启用鼠标左键拖动。[br]
 ## Enable dragging with mouse left button. 
 @export var enable_mouse_dragging := true
 
-## 启用触摸拖动。
+## 启用触摸拖动。[br]
 ## Enable dragging with screen touch. 
 @export var enable_touch_dragging := true
 
+## 行为设置
+@export_group("Behaviors")
+
+## 水平方向修饰键
+@export_flags("Ctrl", "Shift", "Alt") var h_scroll_modifier := Modifier.SHIFT as int:
+	set(val): h_scroll_modifier = clampi(val, 0, 7)
+
+## 垂直方向修饰键
+@export_flags("Ctrl", "Shift", "Alt") var v_scroll_modifier := Modifier.NONE as int:
+	set(val): v_scroll_modifier = clampi(val, 0, 7)
+
+## 锁定水平滚动 [br]
+## Lock horizontal scrolling 
+@export var lock_h := false
+
+## 锁定垂直滚动 [br]
+## Lock vertical scrolling 
+@export var lock_v := false
+
+## 当 [param content_node] 宽度小于等于此容器时，自动锁定水平滚动。[br]
+## Lock horizontal scrolling 
+## when [param content_node] 's width is less than or equal to this container 's.
 @export var auto_lock_h := true
 
+## 当 [param content_node] 高度小于等于此容器时，自动锁定垂直滚动。[br]
+## Lock vertical scrolling 
+## when [param content_node] 's height less than or equal to this container 's.
 @export var auto_lock_v := true
+
+## 如果为  [code]true[/code] ，则此容器将自动滚动到获得焦点的子项以确保它们完全可见。[br]
+## If  [code]true[/code] , this container will automatically scroll to focused children 
+## to make sure they are fully visible.
+@export var follow_focus := true
+
+## @experimental
+## 为滚动到焦点节点留出间距。[br]
+## Margin for focused child if follow focus.
+var follow_focus_margin := 0
 
 # 滚动速度。
 # Scrolling velocity. 
@@ -82,6 +128,7 @@ func _enter_tree() -> void:
 	child_order_changed.connect(_on_child_changed.bind(null, false))
 	resized.connect(_on_self_resized)
 	size_flags_changed.connect(_on_self_resized)
+	get_window().gui_focus_changed.connect(_on_gui_focus_changed)
 
 
 func _exit_tree() -> void:
@@ -90,6 +137,7 @@ func _exit_tree() -> void:
 	child_order_changed.disconnect(_on_child_changed)
 	resized.disconnect(_on_self_resized)
 	size_flags_changed.disconnect(_on_self_resized)
+	get_window().gui_focus_changed.disconnect(_on_gui_focus_changed)
 
 
 func _ready() -> void:
@@ -125,37 +173,68 @@ func _handle_wheel_input(event:InputEventMouseButton) -> void:
 	# Change parameters
 	_friction = friction_scroll
 	_bounce_strength = bounce_scroll
+	# 检查修饰键
+	# Check modifiers
+	var no_modifier = !event.ctrl_pressed and !event.shift_pressed and !event.alt_pressed
+	var ctrl_only = event.ctrl_pressed and !event.shift_pressed and !event.alt_pressed
+	var shift_only = !event.ctrl_pressed and event.shift_pressed and !event.alt_pressed
+	var alt_only = !event.ctrl_pressed and !event.shift_pressed and event.alt_pressed
+	var ctrl_shift = event.ctrl_pressed and event.shift_pressed and !event.alt_pressed
+	var ctrl_alt = event.ctrl_pressed and !event.shift_pressed and event.alt_pressed
+	var shift_alt = !event.ctrl_pressed and event.shift_pressed and event.alt_pressed
+	var ctrl_shift_alt = event.ctrl_pressed and event.shift_pressed and event.alt_pressed
+	
+	var can_h_scroll = false
+	var can_v_scroll = false
+	match h_scroll_modifier:
+		0: can_h_scroll = no_modifier
+		1: can_h_scroll = ctrl_only
+		2: can_h_scroll = shift_only
+		3: can_h_scroll = ctrl_shift
+		4: can_h_scroll = alt_only
+		5: can_h_scroll = ctrl_alt
+		6: can_h_scroll = shift_alt
+		7: can_h_scroll = ctrl_shift_alt
+	match v_scroll_modifier:
+		0: can_v_scroll = no_modifier
+		1: can_v_scroll = ctrl_only
+		2: can_v_scroll = shift_only
+		3: can_v_scroll = ctrl_shift
+		4: can_v_scroll = alt_only
+		5: can_v_scroll = ctrl_alt
+		6: can_v_scroll = shift_alt
+		7: can_v_scroll = ctrl_shift_alt
+	# 应用速度
+	var apply_speed = func(vertical:bool, add:bool) -> void:
+		if vertical:
+			if _should_scroll_vertical(): 
+				_velocity.y += speed * event.factor * (1 if add else -1)
+		else:
+			if _should_scroll_horizontal(): 
+				_velocity.x += speed * event.factor * (1 if add else -1)
 	# 处理不同按钮
 	# Handle different buttons
 	match event.button_index:
 		MOUSE_BUTTON_WHEEL_UP:
-			if event.shift_pressed:
-				if _should_scroll_horizontal():
-					_velocity.x += speed * event.factor
-			else:
-				if _should_scroll_vertical():
-					_velocity.y += speed * event.factor
+			if can_h_scroll:
+				apply_speed.call(false, true)
+			if can_v_scroll:
+				apply_speed.call(true, true)
 		MOUSE_BUTTON_WHEEL_DOWN:
-			if event.shift_pressed:
-				if _should_scroll_horizontal():
-					_velocity.x -= speed * event.factor
-			else:
-				if _should_scroll_vertical():
-					_velocity.y -= speed * event.factor
+			if can_h_scroll:
+				apply_speed.call(false, false)
+			if can_v_scroll:
+				apply_speed.call(true, false)
 		MOUSE_BUTTON_WHEEL_LEFT:
-			if !event.shift_pressed:
-				if _should_scroll_horizontal():
-					_velocity.x += speed * event.factor
-			else:
-				if _should_scroll_vertical():
-					_velocity.y += speed * event.factor
+			if can_h_scroll:
+				apply_speed.call(true, true)
+			if can_v_scroll:
+				apply_speed.call(false, true)
 		MOUSE_BUTTON_WHEEL_RIGHT:
-			if !event.shift_pressed:
-				if _should_scroll_horizontal():
-					_velocity.x -= speed * event.factor
-			else:
-				if _should_scroll_vertical():
-					_velocity.y -= speed * event.factor
+			if can_h_scroll:
+				apply_speed.call(true, false)
+			if can_v_scroll:
+				apply_speed.call(false, false)
 
 
 # 处理拖动事件
@@ -239,10 +318,13 @@ func _init_drag_temp_data() -> void:
 	var content_node_position = _get_content_node_position()
 	# 计算该容器与 content_node 的尺寸差距
 	# Calculate the size difference between this container and content_node
-	var content_node_size_diff = _get_content_node_size_diff()
+	var content_node_size_diff = _get_child_size_diff(content_node, true)
 	# 计算 content_node 到左、右、上、下边界的距离
 	# Calculate distance to left, right, top and bottom
-	var content_node_boundary_dist = _get_content_node_boundary_dist(content_node_size_diff)
+	var content_node_boundary_dist = _get_child_boundary_dist(
+		_get_content_node_position(),
+		content_node_size_diff
+	)
 	_drag_temp_data = [
 		0.0, 
 		0.0, 
@@ -257,8 +339,8 @@ func _init_drag_temp_data() -> void:
 
 # 是否能够水平滚动
 func _should_scroll_horizontal() -> bool:
-	var disable_scroll = auto_lock_h and \
-		(get_global_rect().size.x >= content_node.get_global_rect().size.x)
+	var disable_scroll = lock_h or (auto_lock_h and \
+		(get_global_rect().size.x >= content_node.get_global_rect().size.x))
 	if disable_scroll:
 		_velocity.x = 0.0
 		return false
@@ -268,8 +350,8 @@ func _should_scroll_horizontal() -> bool:
 
 # 是否能够垂直滚动
 func _should_scroll_vertical() -> bool:
-	var disable_scroll = auto_lock_v and \
-		(get_global_rect().size.y >= content_node.get_global_rect().size.y)
+	var disable_scroll = lock_v or (auto_lock_v and \
+		(get_global_rect().size.y >= content_node.get_global_rect().size.y))
 	if disable_scroll:
 		_velocity.y = 0.0
 		return false
@@ -281,7 +363,7 @@ func _scroll(delta:float) -> void:
 	if !content_node: return
 	
 	if _is_dragging:
-		pass
+		_velocity = Vector2.ZERO
 	else:
 		# 出界回弹
 		# Bounce when out of boundary
@@ -306,10 +388,13 @@ func _scroll(delta:float) -> void:
 func _bounce(delta:float) -> void:
 	# 计算该容器与 content_node 的尺寸差距
 	# Calculate the size difference between this container and content_node
-	var content_node_size_diff = _get_content_node_size_diff()
+	var content_node_size_diff = _get_child_size_diff(content_node, true)
 	# 计算 content_node 到左、右、上、下边界的距离
 	# Calculate distance to left, right, top and bottom
-	var content_node_boundary_dist = _get_content_node_boundary_dist(content_node_size_diff)
+	var content_node_boundary_dist = _get_child_boundary_dist(
+		_get_content_node_position(),
+		content_node_size_diff
+	)
 	# 计算到左、右、上、下边界所需的速度
 	# Calculate velocity to left, right, top and bottom
 	var target_vel = Vector4(
@@ -345,33 +430,35 @@ func _bounce(delta:float) -> void:
 				_velocity.y = target_vel.w
 
 
-func _get_content_node_size_diff() -> Vector2:
-	# 伪造 content_node 的尺寸以避免其尺寸小于容器时的错误
-	# Falsify the size of the content_node to avoid errors 
-	# when the size is smaller than this container
-	var content_node_size = Vector2(
-		max(content_node.get_global_rect().size.x, get_global_rect().size.x),
-		max(content_node.get_global_rect().size.y, get_global_rect().size.y)
+func _get_child_size_diff(child:Control, clamp:bool) -> Vector2:
+	var child_size = child.get_global_rect().size
+	# 伪造子节点的尺寸以避免其尺寸小于容器时的错误
+	# Falsify the size of the child node to avoid errors 
+	# when its size is smaller than this container 's
+	if clamp:
+		child_size = Vector2(
+			max(child.get_global_rect().size.x, get_global_rect().size.x),
+			max(child.get_global_rect().size.y, get_global_rect().size.y)
+		)
+	# 计算该容器与子节点的尺寸差距
+	# Calculate the size difference between this container and child node
+	var child_size_diff = Vector2(
+		child_size.x - get_global_rect().size.x,
+		child_size.y - get_global_rect().size.y
 	)
-	# 计算该容器与 content_node 的尺寸差距
-	# Calculate the size difference between this container and content_node
-	var content_node_size_diff = Vector2(
-		content_node_size.x - get_global_rect().size.x,
-		content_node_size.y - get_global_rect().size.y
-	)
-	return content_node_size_diff
+	return child_size_diff
 
 
-func _get_content_node_boundary_dist(content_node_size_diff:Vector2) -> Vector4:
-	# 计算 content_node 到左、右、上、下边界的距离
+func _get_child_boundary_dist(child_pos:Vector2, child_size_diff:Vector2) -> Vector4:
+	# 计算子节点到左、右、上、下边界的距离
 	# Calculate distance to left, right, top and bottom
-	var content_node_boundary_dist = Vector4(
-		_get_content_node_position().x,
-		_get_content_node_position().x + content_node_size_diff.x,
-		_get_content_node_position().y,
-		_get_content_node_position().y + content_node_size_diff.y
+	var child_boundary_dist = Vector4(
+		child_pos.x,
+		child_pos.x + child_size_diff.x,
+		child_pos.y,
+		child_pos.y + child_size_diff.y
 	)
-	return content_node_boundary_dist
+	return child_boundary_dist
 
 
 # 根据 content_node 的 size_flag 伪造一个 position getter
@@ -506,3 +593,46 @@ func _fit_child_size(node:Control) -> void:
 	else:
 		node.size.y = 0.0
 
+
+func _on_gui_focus_changed(node:Control) -> void:
+	ensure_control_visible(node)
+
+
+func ensure_control_visible(child:Control) -> void:
+	if !is_ancestor_of(child): return
+	
+	var child_size_diff = _get_child_size_diff(child, false)
+	var child_boundary_dist = _get_child_boundary_dist(
+		child.global_position - global_position,
+		child_size_diff
+	)
+	var vel:Vector2 = _velocity
+	if child_boundary_dist.x < 0 + follow_focus_margin:
+		vel.x = _calculate_velocity_to_dest(child_boundary_dist.x, 0+follow_focus_margin)
+	elif child_boundary_dist.y > 0 - follow_focus_margin:
+		vel.x = _calculate_velocity_to_dest(child_boundary_dist.y, 0-follow_focus_margin)
+	if child_boundary_dist.z < 0 + follow_focus_margin:
+		vel.y = _calculate_velocity_to_dest(child_boundary_dist.z, 0+follow_focus_margin)
+	elif child_boundary_dist.w > 0 - follow_focus_margin:
+		vel.y = _calculate_velocity_to_dest(child_boundary_dist.w, 0-follow_focus_margin)
+	
+	_velocity = vel
+
+
+## 将 [param content_node] 水平滚动至
+func scroll_h_to(destination:float):
+	if !content_node: return
+	_velocity.x = _calculate_velocity_to_dest(content_node.position.x, destination)
+
+
+## 将 [param content_node] 垂直滚动至
+func scroll_v_to(destination:float):
+	if !content_node: return
+	_velocity.y = _calculate_velocity_to_dest(content_node.position.y, destination)
+
+
+## 将 [param content_node] 滚动至
+func scroll_to(destination:Vector2):
+	if !content_node: return
+	scroll_h_to(destination.x)
+	scroll_v_to(destination.y)

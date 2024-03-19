@@ -137,7 +137,7 @@ enum Modifier{
 
 @export_group("Theme Overrides")
 
-@export_subgroup("Style", "override_")
+@export_subgroup("Styles", "override_")
 
 ## 覆盖
 @export var override_panel :StyleBox
@@ -160,7 +160,7 @@ var _is_dragging = false
 # [2,3] Content node 's position when dragging starts. 
 # [4,5,6,7] Left_distance, right_distance, top_distance, bottom_distance. 
 var _drag_temp_data := []
-#var _velocity_handler = QuartVelocityHandler.new()
+
 
 func _enter_tree() -> void:
 	# 连接信号
@@ -185,15 +185,20 @@ func _exit_tree() -> void:
 
 
 func _init() -> void:
+	pass
+
+
+func _ready() -> void:
 	# 初始化参数
 	# Initialize parameters
 	_friction = friction_scroll
 	_bounce_strength = bounce_scroll
-
-
-func _ready() -> void:
+	# 初始化子节点位置
+	# Initialize child nodes' position
+	for child in get_children():
+		_fit_child_size.call_deferred(child)
+		_set_child_fake_position.call_deferred(child, Vector2.ZERO, false, true)
 	_update_scroll_bars()
-	#print(_velocity_handler.calculate_next_velocity(1.0))
 
 
 func _draw() -> void:
@@ -399,7 +404,7 @@ func _init_drag_temp_data() -> void:
 	var content_node_position = _get_content_node_position()
 	# 计算该容器与 content_node 的尺寸差距
 	# Calculate the size difference between this container and content_node
-	var content_node_size_diff = _get_child_size_diff(content_node, true)
+	var content_node_size_diff = _get_child_size_diff(content_node, true, true)
 	# 计算 content_node 到左、右、上、下边界的距离
 	# Calculate distance to left, right, top and bottom
 	var content_node_boundary_dist = _get_child_boundary_dist(
@@ -469,7 +474,7 @@ func _scroll(delta:float) -> void:
 func _bounce(delta:float) -> void:
 	# 计算该容器与 content_node 的尺寸差距
 	# Calculate the size difference between this container and content_node
-	var content_node_size_diff = _get_child_size_diff(content_node, true)
+	var content_node_size_diff = _get_child_size_diff(content_node, true, true)
 	# 计算 content_node 到左、右、上、下边界的距离
 	# Calculate distance to left, right, top and bottom
 	var content_node_boundary_dist = _get_child_boundary_dist(
@@ -511,114 +516,141 @@ func _bounce(delta:float) -> void:
 				_velocity.y = target_vel.w
 
 
-func _get_child_size_diff(child:Control, clamp:bool) -> Vector2:
-	var child_size = child.size * child.scale
+# 计算该容器与子节点的 x 尺寸差距
+# Calculate the size x difference between this container and child node
+func _get_child_size_x_diff(child:Control, clamp:bool) -> float:
+	var child_size_x = child.size.x * child.scale.x
 	# 伪造子节点的尺寸以避免其尺寸小于容器时的错误
 	# Falsify the size of the child node to avoid errors 
 	# when its size is smaller than this container 's
 	if clamp:
-		child_size = Vector2(
-			max(child_size.x, size.x),
-			max(child_size.y, size.y)
-		)
-	# 计算该容器与子节点的尺寸差距
-	# Calculate the size difference between this container and child node
-	var child_size_diff = Vector2(
-		child_size.x - size.x,
-		child_size.y - size.y
+		child_size_x = max(child_size_x, size.x)
+	return child_size_x - size.x
+
+
+# 计算该容器与子节点的 y 尺寸差距
+# Calculate the size y difference between this container and child node
+func _get_child_size_y_diff(child:Control, clamp:bool) -> float:
+	var child_size_y = child.size.y * child.scale.y
+	# 伪造子节点的尺寸以避免其尺寸小于容器时的错误
+	# Falsify the size of the child node to avoid errors 
+	# when its size is smaller than this container 's
+	if clamp:
+		child_size_y = max(child_size_y, size.y)
+	return child_size_y - size.y
+
+
+# 计算该容器与子节点的尺寸差距
+# Calculate the size difference between this container and child node
+func _get_child_size_diff(child:Control, clamp_x:bool, clamp_y:bool) -> Vector2:
+	return Vector2(
+		_get_child_size_x_diff(child, clamp_x),
+		_get_child_size_y_diff(child, clamp_y)
 	)
-	return child_size_diff
 
 
+# 计算子节点到左边界的距离
+# Calculate distance to left
+func _get_child_left_dist(child_pos_x:float, child_size_diff_x:float) -> float:
+	return child_pos_x
+
+
+# 计算子节点到右边界的距离
+# Calculate distance to right
+func _get_child_right_dist(child_pos_x:float, child_size_diff_x:float) -> float:
+	return child_pos_x + child_size_diff_x
+
+
+# 计算子节点到上边界的距离
+# Calculate distance to top
+func _get_child_top_dist(child_pos_y:float, child_size_diff_y:float) -> float:
+	return child_pos_y
+
+
+# 计算子节点到右边界的距离
+# Calculate distance to bottom
+func _get_child_bottom_dist(child_pos_y:float, child_size_diff_y:float) -> float:
+	return child_pos_y + child_size_diff_y
+
+
+# 计算子节点到左、右、上、下边界的距离
+# Calculate distance to left, right, top and bottom
 func _get_child_boundary_dist(child_pos:Vector2, child_size_diff:Vector2) -> Vector4:
-	# 计算子节点到左、右、上、下边界的距离
-	# Calculate distance to left, right, top and bottom
-	var child_boundary_dist = Vector4(
-		child_pos.x,
-		child_pos.x + child_size_diff.x,
-		child_pos.y,
-		child_pos.y + child_size_diff.y
+	return Vector4(
+		_get_child_left_dist(child_pos.x, child_size_diff.x),
+		_get_child_right_dist(child_pos.x, child_size_diff.x),
+		_get_child_top_dist(child_pos.y, child_size_diff.y),
+		_get_child_bottom_dist(child_pos.y, child_size_diff.y),
 	)
-	return child_boundary_dist
 
 
 # 根据 content_node 的 size_flag 伪造一个 position getter
 # Falsify a position getter based on content_node 's size_flag
-func _get_content_node_position() -> Vector2:
-	var fake_position = _get_child_fake_position(content_node)
-	var size_diff = _get_child_size_diff(content_node, true)
-	var EXPAND_CENTER = Control.SIZE_SHRINK_CENTER | Control.SIZE_EXPAND
-	var EXPAND_END = Control.SIZE_SHRINK_END | Control.SIZE_EXPAND
-	if content_node.size_flags_horizontal == EXPAND_CENTER:
-		fake_position.x -= size_diff.x / 2.0
-	if content_node.size_flags_horizontal == EXPAND_END:
-		fake_position.x -= size_diff.x
-	if content_node.size_flags_vertical == EXPAND_CENTER:
-		fake_position.y -= size_diff.y / 2.0
-	if content_node.size_flags_vertical == EXPAND_END:
-		fake_position.y -= size_diff.y
+func _get_content_node_position(clamp:bool=true) -> Vector2:
+	var fake_position = _get_child_fake_position(content_node, clamp)
 	return fake_position
 
 
-func _get_child_fake_position(node:Control) -> Vector2:
+# 根据 node 的 size_flag 伪造一个 position getter
+# Falsify a position getter based on node 's size_flag
+func _get_child_fake_position(node:Control, clamp:bool=false) -> Vector2:
 	var fake_position = node.position
+	var size_diff = _get_child_size_diff(node, true, true)
 	var EXPAND_CENTER = Control.SIZE_SHRINK_CENTER | Control.SIZE_EXPAND
 	var EXPAND_END = Control.SIZE_SHRINK_END | Control.SIZE_EXPAND
 	if node.size_flags_horizontal == EXPAND_CENTER:
 		fake_position.x -= \
-			(size.x - node.size.x * node.scale.x) / 2
+			(size.x - node.size.x * node.scale.x) / 2.0
+		if clamp: fake_position.x -= size_diff.x / 2.0
 	if node.size_flags_horizontal == EXPAND_END:
 		fake_position.x -= \
 			size.x - node.size.x * node.scale.x
+		if clamp: fake_position.x -= size_diff.x
 	if node.size_flags_vertical == EXPAND_CENTER:
 		fake_position.y -= \
-			(size.y - node.size.y * node.scale.y) / 2
+			(size.y - node.size.y * node.scale.y) / 2.0
+		if clamp: fake_position.y -= size_diff.y / 2.0
 	if node.size_flags_vertical == EXPAND_END:
 		fake_position.y -= \
 			size.y - node.size.y * node.scale.y
+		if clamp: fake_position.y -= size_diff.y
 	return fake_position
 
 
 # 根据 content_node 的 size_flag 伪造一个 position setter
 # Falsify a position setter based on content_node 's size_flag
-func _set_content_node_position(new_position:Vector2) -> void:
-	var size_diff = _get_child_size_diff(content_node, true)
-	var EXPAND_CENTER = Control.SIZE_SHRINK_CENTER | Control.SIZE_EXPAND
-	var EXPAND_END = Control.SIZE_SHRINK_END | Control.SIZE_EXPAND
-	if content_node.size_flags_horizontal == EXPAND_CENTER:
-		new_position.x += size_diff.x / 2.0
-	if content_node.size_flags_horizontal == EXPAND_END:
-		new_position.x += size_diff.x
-	if content_node.size_flags_vertical == EXPAND_CENTER:
-		new_position.y += size_diff.y / 2.0
-	if content_node.size_flags_vertical == EXPAND_END:
-		new_position.y += size_diff.y
-	_set_child_fake_position(content_node, new_position, true)
+func _set_content_node_position(new_position:Vector2, clamp:bool=true, keep_offset:bool=true) -> void:
+	_set_child_fake_position(content_node, new_position, clamp, keep_offset)
 
 
-# 设置子节点位置
-func _set_child_fake_position(node:Control, new_position:Vector2, keep_offset:bool=false) -> void:
+# 根据 node 的 size_flag 伪造一个 position setter
+# Falsify a position setter based on node 's size_flag
+func _set_child_fake_position(node:Control, new_position:Vector2, clamp:bool=false, keep_offset:bool=false) -> void:
 	# 当容器在游戏中更改尺寸时，不应重置滚动位置
 	# When container resize in game, scrolling position should not be reset
 	if content_node and node == content_node and ! Engine.is_editor_hint() and !keep_offset:
 		new_position = _get_child_fake_position(node)
 	
-	var fake_position = new_position
+	var size_diff = _get_child_size_diff(node, true, true)
 	var EXPAND_CENTER = Control.SIZE_SHRINK_CENTER | Control.SIZE_EXPAND
 	var EXPAND_END = Control.SIZE_SHRINK_END | Control.SIZE_EXPAND
 	if node.size_flags_horizontal == EXPAND_CENTER:
-		fake_position.x += \
+		new_position.x += \
 			(size.x - node.size.x * node.scale.x) / 2
+		if clamp: new_position.x += size_diff.x / 2.0
 	if node.size_flags_horizontal == EXPAND_END:
-		fake_position.x += \
+		new_position.x += \
 			size.x - node.size.x * node.scale.x
+		if clamp: new_position.x += size_diff.x
 	if node.size_flags_vertical == EXPAND_CENTER:
-		fake_position.y += \
+		new_position.y += \
 			(size.y - node.size.y * node.scale.y) / 2
+		if clamp: new_position.y += size_diff.y / 2.0
 	if node.size_flags_vertical == EXPAND_END:
-		fake_position.y += \
+		new_position.y += \
 			size.y - node.size.y * node.scale.y
-	node.position = fake_position
+		if clamp: new_position.y += size_diff.y
+	node.position = new_position
 
 
 # 用时间求速度
@@ -745,6 +777,7 @@ func _on_h_scroll_bar_value_changed(value) -> void:
 	if !content_node: return
 	var pos = _get_content_node_position()
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_velocity = Vector2.ZERO
 		_set_content_node_position(Vector2(-value, pos.y))
 
 
@@ -752,6 +785,7 @@ func _on_v_scroll_bar_value_changed(value) -> void:
 	if !content_node: return
 	var pos = _get_content_node_position()
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_velocity = Vector2.ZERO
 		_set_content_node_position(Vector2(pos.x, -value))
 
 
@@ -772,7 +806,6 @@ func _on_child_changed(node:Node=null, exit_tree:bool=false) -> void:
 			node.resized.connect(_on_child_resized.bind(node))
 			node.size_flags_changed.connect(_on_child_resized.bind(node))
 			node.minimum_size_changed.connect(_on_child_resized.bind(node))
-			_on_child_resized.bind(node).call_deferred()
 
 
 # 当当前节点大小变化时
@@ -823,7 +856,6 @@ func find_content_node() -> Control:
 func ensure_control_visible(child:Control) -> void:
 	if !is_ancestor_of(child): return
 	
-	#var child_size_diff = _get_child_size_diff(child, false)
 	var child_size_diff = (
 		child.get_global_rect().size - get_global_rect().size
 	) / (get_global_rect().size / size)

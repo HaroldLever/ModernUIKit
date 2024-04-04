@@ -1,0 +1,7 @@
+[gd_resource type="Theme" load_steps=2 format=3 uid="uid://cbt7627f1s6vt"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ac5oi"]
+bg_color = Color(0.0666667, 0.0666667, 0.0666667, 1)
+
+[resource]
+ModernScrollContainer/styles/panel = SubResource("StyleBoxFlat_ac5oi")

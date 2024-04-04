@@ -1,12 +1,15 @@
-[gd_scene load_steps=5 format=3 uid="uid://bwj7dm3rib13a"]
+[gd_scene load_steps=12 format=3 uid="uid://bwj7dm3rib13a"]
 
-[ext_resource type="Theme" uid="uid://cpi1ue0r743cx" path="res://addons/modern_ui_kit/themes/light.tres" id="1_ootu7"]
+[ext_resource type="Theme" uid="uid://cbt7627f1s6vt" path="res://addons/modern_ui_kit/themes/dark.tres" id="1_tqwf8"]
 [ext_resource type="Script" path="res://addons/modern_ui_kit/scripts/modern_scroll_container.gd" id="2_crmmr"]
 [ext_resource type="Texture2D" uid="uid://ccqwac3xw8hi" path="res://addons/modern_ui_kit/icon.svg" id="3_i1q8w"]
+[ext_resource type="Script" path="res://addons/modern_ui_kit/scripts/quart_velocity_helper.gd" id="4_ftfn1"]
 
 [sub_resource type="GDScript" id="GDScript_p6q7y"]
 resource_name = "ui_controller"
 script/source = "extends Control
+
+@export_group(\"Duplicate\")
 
 # 垂直滚动容器的复制对象
 @export var v_control:Control
@@ -15,8 +18,62 @@ script/source = "extends Control
 # 滚动容器的 TextureRect
 @export var hv_control:Control
 
+@export_group(\"Detail info\")
+# 展开详细信息按钮
+@export var show_detail_button :Button
+# 信息面板容器
+@export var detail_info_container :Control
+# 垂直滚动容器的信息面板
+@export var v_detail_info :RichTextLabel
+# 水平滚动容器的信息面板
+@export var h_detail_info :RichTextLabel
+# 滚动容器的信息面板
+@export var hv_detail_info :RichTextLabel
+# 垂直滚动容器
+@export var v_scroll_container :ModernScrollContainer
+# 水平滚动容器
+@export var h_scroll_container :ModernScrollContainer
+# 滚动容器
+@export var hv_scroll_container :ModernScrollContainer
+
+# 刷新详细信息的线程
+var info_threads = [
+	Thread.new(),
+	Thread.new(),
+	Thread.new()
+]
+#var v_info_thread = Thread.new()
+#var h_info_thread = Thread.new()
+#var hv_info_thread = Thread.new()
+# MSC的属性列表
+var property_lists = [
+	[],
+	[],
+	[]
+]
+#var v_property_list
+#var h_property_list
+#var hv_property_list
+# 刷新的文字
+var new_texts = [
+	\"\",
+	\"\",
+	\"\"
+]
+#var v_new_text
+#var h_new_text
+#var hv_new_text
+
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	_duplicate_nodes()
+	_setup_detail_thread(v_scroll_container, 0)
+	_setup_detail_thread(h_scroll_container, 1)
+	_setup_detail_thread(hv_scroll_container, 2)
+
+
+func _duplicate_nodes() -> void:
 	if v_control:
 		var parent_node = v_control.get_parent()
 		for i in 30:
@@ -51,12 +108,80 @@ func _ready():
 			parent_node.add_child(new_node)
 
 
+func _setup_detail_thread(msc:ModernScrollContainer, index:int) -> void:
+	if !msc: return
+	property_lists[index] = msc.get_script().get_script_property_list()
+	info_threads[index].start(_update_detail_info.bind(msc, index))
+
+
+func _update_detail_info(msc:ModernScrollContainer, index:int) -> void:
+	while true:
+		await get_tree().process_frame
+		new_texts[index] = \"\"
+		if msc.content_node:
+			new_texts[index] += str(msc.content_node.position) + \"\\n\"
+			new_texts[index] += str(msc.content_node.size) + \"\\n\"
+		for propertyInfo in property_lists[index]:
+			var propertyName : String = propertyInfo.name
+			var propertyValue = msc.call(\"get\", propertyName)
+			var propertyType = propertyInfo.usage
+			if (
+				(propertyType & 64) != 0 \\
+				or (propertyType & 128) != 0 \\
+				or (propertyType & 256) != 0 \\
+			): continue
+			new_texts[index] += \\
+				\"[color=green]%s:[/color] %s\\n\" % [propertyName, propertyValue] \\
+				if propertyType == 4096 else \\
+				\"[color=yellow]%s:[/color] %s\\n\" % [propertyName, propertyValue]
+
+func _exit_tree():
+	for thread in info_threads:
+		thread.wait_to_finish()
+
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
-	pass
+	if v_detail_info:
+		v_detail_info.text = new_texts[0]
+	if h_detail_info:
+		h_detail_info.text = new_texts[1]
+	if hv_detail_info:
+		hv_detail_info.text = new_texts[2]
+	if detail_info_container and show_detail_button:
+		detail_info_container.visible = show_detail_button.button_pressed
 "
 
-[node name="Node" type="Control" node_paths=PackedStringArray("v_control", "h_control", "hv_control")]
+[sub_resource type="Resource" id="Resource_ivqrn"]
+script = ExtResource("4_ftfn1")
+friction = 10000.0
+attracting_strength = 400.0
+
+[sub_resource type="Resource" id="Resource_eqtwr"]
+script = ExtResource("4_ftfn1")
+friction = 100000.0
+attracting_strength = 400.0
+
+[sub_resource type="Resource" id="Resource_84clw"]
+script = ExtResource("4_ftfn1")
+friction = 100000.0
+attracting_strength = 400.0
+
+[sub_resource type="Resource" id="Resource_ga014"]
+script = ExtResource("4_ftfn1")
+friction = 100000.0
+attracting_strength = 400.0
+
+[sub_resource type="Resource" id="Resource_ww0x0"]
+script = ExtResource("4_ftfn1")
+friction = 100000.0
+attracting_strength = 400.0
+
+[sub_resource type="Resource" id="Resource_mostd"]
+script = ExtResource("4_ftfn1")
+friction = 100000.0
+attracting_strength = 400.0
+
+[node name="Node" type="Control" node_paths=PackedStringArray("v_control", "h_control", "hv_control", "show_detail_button", "detail_info_container", "v_detail_info", "h_detail_info", "hv_detail_info", "v_scroll_container", "h_scroll_container", "hv_scroll_container")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -64,9 +189,17 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = SubResource("GDScript_p6q7y")
-v_control = NodePath("Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer/Button1")
-h_control = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer/MarginContainer/HBoxContainer/Button")
-hv_control = NodePath("Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer/MarginContainer/HBoxContainer/Button")
+v_control = NodePath("Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer/Button1")
+h_control = NodePath("Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer/MarginContainer/HBoxContainer/Button")
+hv_control = NodePath("Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer/MarginContainer/HBoxContainer/Button")
+show_detail_button = NodePath("Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/Button")
+detail_info_container = NodePath("Control/MarginContainer/HSplitContainerInfo/TabContainer")
+v_detail_info = NodePath("Control/MarginContainer/HSplitContainerInfo/TabContainer/V_MSC")
+h_detail_info = NodePath("Control/MarginContainer/HSplitContainerInfo/TabContainer/H_MSC")
+hv_detail_info = NodePath("Control/MarginContainer/HSplitContainerInfo/TabContainer/HV_MSC")
+v_scroll_container = NodePath("Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer")
+h_scroll_container = NodePath("Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer")
+hv_scroll_container = NodePath("Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer")
 
 [node name="Control" type="Control" parent="."]
 layout_mode = 1
@@ -76,7 +209,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_vertical = 3
-theme = ExtResource("1_ootu7")
+theme = ExtResource("1_tqwf8")
 
 [node name="MarginContainer" type="MarginContainer" parent="Control"]
 layout_mode = 1
@@ -90,16 +223,34 @@ theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="HSplitContainer" type="HSplitContainer" parent="Control/MarginContainer"]
+[node name="HSplitContainerInfo" type="HSplitContainer" parent="Control/MarginContainer"]
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="Control/MarginContainer/HSplitContainerInfo"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="V_MSC" type="RichTextLabel" parent="Control/MarginContainer/HSplitContainerInfo/TabContainer"]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="H_MSC" type="RichTextLabel" parent="Control/MarginContainer/HSplitContainerInfo/TabContainer"]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="HV_MSC" type="RichTextLabel" parent="Control/MarginContainer/HSplitContainerInfo/TabContainer"]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="HSplitContainer" type="HSplitContainer" parent="Control/MarginContainer/HSplitContainerInfo"]
 layout_mode = 2
 split_offset = 270
 
-[node name="Panel" type="Panel" parent="Control/MarginContainer/HSplitContainer"]
-clip_children = 2
+[node name="Panel" type="Panel" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer"]
 clip_contents = true
 layout_mode = 2
 
-[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/Panel" node_paths=PackedStringArray("content_node", "v_scroll_bar")]
+[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel" node_paths=PackedStringArray("content_node", "v_scroll_bar")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -107,13 +258,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_crmmr")
-friction_drag = 10000
-bounce_drag = 700
+wheel_velocity_helper = SubResource("Resource_ivqrn")
+dragging_velocity_helper = SubResource("Resource_eqtwr")
+follow_focus_margin = 8.0
 content_node = NodePath("MarginContainer")
-v_scroll_bar = NodePath("VScrollBar")
+v_scroll_bar = NodePath("../VScrollBar")
 use_scroll_container_style = false
 
-[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 2
@@ -122,127 +274,135 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 2
 
-[node name="Button1" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button1" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button2" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button2" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button3" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button3" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button4" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button4" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button5" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button5" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button6" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button6" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button7" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button7" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button8" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button8" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button9" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button9" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button10" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button10" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button11" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button11" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button12" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button12" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="Button13" type="Button" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
+[node name="Button13" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 mouse_filter = 1
 text = "Button1"
 
-[node name="TextureRect" type="TextureRect" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer"]
+[node name="Button" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel/ModernScrollContainer"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-size_flags_horizontal = 0
+size_flags_horizontal = 2
 size_flags_vertical = 6
-texture = ExtResource("3_i1q8w")
-expand_mode = 5
-stretch_mode = 5
+theme_type_variation = &"OneTextureButton"
+toggle_mode = true
+button_pressed = true
+icon = ExtResource("3_i1q8w")
+expand_icon = true
 
-[node name="VScrollBar" type="VScrollBar" parent="Control/MarginContainer/HSplitContainer/Panel/ModernScrollContainer"]
-layout_mode = 2
+[node name="VScrollBar" type="VScrollBar" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/Panel"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+grow_horizontal = 0
+grow_vertical = 2
 size_flags_horizontal = 10
 size_flags_vertical = 3
 max_value = 616.0
 page = 616.0
 
-[node name="VSplitContainer" type="VSplitContainer" parent="Control/MarginContainer/HSplitContainer"]
+[node name="VSplitContainer" type="VSplitContainer" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer"]
 layout_mode = 2
 split_offset = 85
 
-[node name="Panel1" type="Panel" parent="Control/MarginContainer/HSplitContainer/VSplitContainer"]
-clip_children = 2
+[node name="Panel1" type="Panel" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer"]
 clip_contents = true
 layout_mode = 2
 
-[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1" node_paths=PackedStringArray("content_node", "h_scroll_bar")]
+[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel1" node_paths=PackedStringArray("content_node", "h_scroll_bar")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -250,46 +410,55 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_crmmr")
-friction_drag = 10000
-bounce_drag = 700
+wheel_velocity_helper = SubResource("Resource_84clw")
+dragging_velocity_helper = SubResource("Resource_ga014")
 h_scroll_modifier = 0
 v_scroll_modifier = 2
+follow_focus_margin = 8.0
 content_node = NodePath("MarginContainer")
-h_scroll_bar = NodePath("HScrollBar")
-use_scroll_container_style = false
+h_scroll_bar = NodePath("../HScrollBar")
 
-[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer"]
 layout_mode = 2
-size_flags_horizontal = 2
-size_flags_vertical = 3
+size_flags_horizontal = 3
+size_flags_vertical = 6
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="HBoxContainer" type="HBoxContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer/MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer/MarginContainer"]
 layout_mode = 2
+alignment = 1
 
-[node name="Button" type="Button" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer/MarginContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 1
 theme_type_variation = &"OneTextureButton"
+icon = ExtResource("3_i1q8w")
+expand_icon = true
 
-[node name="HScrollBar" type="HScrollBar" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel1/ModernScrollContainer"]
-layout_mode = 2
+[node name="HScrollBar" type="HScrollBar" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel1"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -8.0
+grow_horizontal = 2
+grow_vertical = 0
 size_flags_horizontal = 3
 size_flags_vertical = 10
-max_value = 838.0
-page = 838.0
+max_value = 576.0
+page = 576.0
 
-[node name="Panel2" type="Panel" parent="Control/MarginContainer/HSplitContainer/VSplitContainer"]
-clip_children = 2
+[node name="Panel2" type="Panel" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer"]
 clip_contents = true
 layout_mode = 2
 
-[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2" node_paths=PackedStringArray("content_node", "h_scroll_bar", "v_scroll_bar")]
+[node name="ModernScrollContainer" type="Container" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2" node_paths=PackedStringArray("content_node", "h_scroll_bar", "v_scroll_bar")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -297,14 +466,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_crmmr")
-friction_drag = 10000
-bounce_drag = 700
+wheel_velocity_helper = SubResource("Resource_ww0x0")
+dragging_velocity_helper = SubResource("Resource_mostd")
+follow_focus_margin = 8.0
 content_node = NodePath("MarginContainer")
-h_scroll_bar = NodePath("HScrollBar")
-v_scroll_bar = NodePath("VScrollBar")
-use_scroll_container_style = false
+h_scroll_bar = NodePath("../HScrollBar")
+v_scroll_bar = NodePath("../VScrollBar")
 
-[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 6
@@ -313,26 +482,44 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="HBoxContainer" type="GridContainer" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer/MarginContainer"]
+[node name="HBoxContainer" type="GridContainer" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer/MarginContainer"]
 layout_mode = 2
 columns = 16
 
-[node name="Button" type="Button" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer/MarginContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 1
 theme_type_variation = &"OneTextureButton"
+icon = ExtResource("3_i1q8w")
+expand_icon = true
 
-[node name="HScrollBar" type="HScrollBar" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer"]
-layout_mode = 2
+[node name="HScrollBar" type="HScrollBar" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -8.0
+offset_right = -8.0
+grow_horizontal = 2
+grow_vertical = 0
 size_flags_horizontal = 3
 size_flags_vertical = 10
-max_value = 838.0
-page = 838.0
+max_value = 576.0
+page = 576.0
 
-[node name="VScrollBar" type="VScrollBar" parent="Control/MarginContainer/HSplitContainer/VSplitContainer/Panel2/ModernScrollContainer"]
-layout_mode = 2
+[node name="VScrollBar" type="VScrollBar" parent="Control/MarginContainer/HSplitContainerInfo/HSplitContainer/VSplitContainer/Panel2"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 2
 size_flags_horizontal = 10
 size_flags_vertical = 3
 max_value = 519.0

@@ -1,7 +1,0 @@
-[gd_resource type="Resource" script_class="QuartVelocityHandler" load_steps=2 format=3 uid="uid://dye0t6q52sklb"]
-
-[ext_resource type="Script" path="res://addons/modern_ui_kit/scripts/quart_velocity_handler.gd" id="1_jo2xo"]
-
-[resource]
-script = ExtResource("1_jo2xo")
-friction = 0

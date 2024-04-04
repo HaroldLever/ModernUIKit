@@ -3,13 +3,8 @@ extends EditorPlugin
 
 
 func _enter_tree():
-	add_custom_type(
-		"ModernScrollContainer", 
-		"Container", 
-		preload("res://addons/modern_ui_kit/scripts/modern_scroll_container.gd"), 
-		preload("res://addons/modern_ui_kit/plugin_icon.svg")
-	)
+	pass
 
 
 func _exit_tree():
-	remove_custom_type("ModernScrollContainer")
+	pass

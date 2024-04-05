@@ -3,7 +3,7 @@
 [ext_resource type="Theme" uid="uid://cbt7627f1s6vt" path="res://addons/modern_ui_kit/themes/dark.tres" id="1_tqwf8"]
 [ext_resource type="Script" path="res://addons/modern_ui_kit/scripts/modern_scroll_container.gd" id="2_crmmr"]
 [ext_resource type="Texture2D" uid="uid://ccqwac3xw8hi" path="res://addons/modern_ui_kit/icon.svg" id="3_i1q8w"]
-[ext_resource type="Script" path="res://addons/modern_ui_kit/scripts/quart_velocity_helper.gd" id="4_ftfn1"]
+[ext_resource type="Script" path="res://addons/modern_ui_kit/scripts/expo_velocity_helper.gd" id="3_w5fat"]
 
 [sub_resource type="GDScript" id="GDScript_p6q7y"]
 resource_name = "ui_controller"
@@ -151,34 +151,40 @@ func _process(delta):
 		detail_info_container.visible = show_detail_button.button_pressed
 "
 
-[sub_resource type="Resource" id="Resource_ivqrn"]
-script = ExtResource("4_ftfn1")
+[sub_resource type="Resource" id="Resource_efymh"]
+script = ExtResource("3_w5fat")
 friction = 10000.0
+minimum_velocity = 0.4
 attracting_strength = 400.0
 
-[sub_resource type="Resource" id="Resource_eqtwr"]
-script = ExtResource("4_ftfn1")
-friction = 100000.0
+[sub_resource type="Resource" id="Resource_ab17s"]
+script = ExtResource("3_w5fat")
+friction = 10000.0
+minimum_velocity = 0.4
 attracting_strength = 400.0
 
-[sub_resource type="Resource" id="Resource_84clw"]
-script = ExtResource("4_ftfn1")
-friction = 100000.0
+[sub_resource type="Resource" id="Resource_owlwb"]
+script = ExtResource("3_w5fat")
+friction = 10000.0
+minimum_velocity = 0.4
 attracting_strength = 400.0
 
-[sub_resource type="Resource" id="Resource_ga014"]
-script = ExtResource("4_ftfn1")
-friction = 100000.0
+[sub_resource type="Resource" id="Resource_gsmud"]
+script = ExtResource("3_w5fat")
+friction = 10000.0
+minimum_velocity = 0.4
 attracting_strength = 400.0
 
-[sub_resource type="Resource" id="Resource_ww0x0"]
-script = ExtResource("4_ftfn1")
-friction = 100000.0
+[sub_resource type="Resource" id="Resource_ydgeo"]
+script = ExtResource("3_w5fat")
+friction = 10000.0
+minimum_velocity = 0.4
 attracting_strength = 400.0
 
-[sub_resource type="Resource" id="Resource_mostd"]
-script = ExtResource("4_ftfn1")
-friction = 100000.0
+[sub_resource type="Resource" id="Resource_pxyyg"]
+script = ExtResource("3_w5fat")
+friction = 10000.0
+minimum_velocity = 0.4
 attracting_strength = 400.0
 
 [node name="Node" type="Control" node_paths=PackedStringArray("v_control", "h_control", "hv_control", "show_detail_button", "detail_info_container", "v_detail_info", "h_detail_info", "hv_detail_info", "v_scroll_container", "h_scroll_container", "hv_scroll_container")]
@@ -235,10 +241,12 @@ layout_mode = 2
 bbcode_enabled = true
 
 [node name="H_MSC" type="RichTextLabel" parent="Control/MarginContainer/HSplitContainerInfo/TabContainer"]
+visible = false
 layout_mode = 2
 bbcode_enabled = true
 
 [node name="HV_MSC" type="RichTextLabel" parent="Control/MarginContainer/HSplitContainerInfo/TabContainer"]
+visible = false
 layout_mode = 2
 bbcode_enabled = true
 
@@ -258,8 +266,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_crmmr")
-wheel_velocity_helper = SubResource("Resource_ivqrn")
-dragging_velocity_helper = SubResource("Resource_eqtwr")
+wheel_velocity_helper = SubResource("Resource_efymh")
+dragging_velocity_helper = SubResource("Resource_ab17s")
 follow_focus_margin = 8.0
 content_node = NodePath("MarginContainer")
 v_scroll_bar = NodePath("../VScrollBar")
@@ -410,8 +418,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_crmmr")
-wheel_velocity_helper = SubResource("Resource_84clw")
-dragging_velocity_helper = SubResource("Resource_ga014")
+wheel_velocity_helper = SubResource("Resource_owlwb")
+dragging_velocity_helper = SubResource("Resource_gsmud")
 h_scroll_modifier = 0
 v_scroll_modifier = 2
 follow_focus_margin = 8.0
@@ -466,8 +474,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_crmmr")
-wheel_velocity_helper = SubResource("Resource_ww0x0")
-dragging_velocity_helper = SubResource("Resource_mostd")
+wheel_velocity_helper = SubResource("Resource_ydgeo")
+dragging_velocity_helper = SubResource("Resource_pxyyg")
 follow_focus_margin = 8.0
 content_node = NodePath("MarginContainer")
 h_scroll_bar = NodePath("../HScrollBar")

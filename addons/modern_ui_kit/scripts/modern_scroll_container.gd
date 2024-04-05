@@ -177,8 +177,8 @@ func _exit_tree() -> void:
 
 func _init() -> void:
 	if Engine.is_editor_hint():
-		wheel_velocity_helper = QuartVelocityHelper.new()
-		dragging_velocity_helper = QuartVelocityHelper.new()
+		wheel_velocity_helper = CubicVelocityHelper.new()
+		dragging_velocity_helper = CubicVelocityHelper.new()
 
 
 func _ready() -> void:

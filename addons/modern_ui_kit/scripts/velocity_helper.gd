@@ -56,7 +56,6 @@ func _calculate_next_offset(present_time:float, delta_time:float) -> float:
 ## 滑动
 func slide(velocity:float, delta_time:float) -> Array:
 	var present_time = _calculate_time_by_velocity(velocity)
-	var offset = _calculate_offset_by_time(present_time)
 	return [
 		_calculate_next_velocity(present_time, delta_time),
 		_calculate_next_offset(present_time, delta_time)
@@ -67,7 +66,8 @@ func slide(velocity:float, delta_time:float) -> Array:
 func attract(from:float, to:float, velocity:float, delta_time:float) -> float:
 	var dist = to - from
 	var target_vel = _calculate_velocity_to_dest(from, to)
-	velocity += attracting_strength * dist * delta_time
+	velocity += attracting_strength * dist * delta_time \
+		 + _calculate_velocity_by_time(delta_time) * sign(dist)
 	if (
 		(dist > 0 and velocity >= target_vel) \
 		or (dist < 0 and velocity <= target_vel) \
